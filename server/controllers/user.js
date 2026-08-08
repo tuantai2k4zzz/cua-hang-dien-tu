@@ -1,6 +1,7 @@
 import User from "../models/user.js"
 import asyncHandler from "express-async-handler"
 import {generateAccessToken, generateRefreshToken} from "../middlewares/jwt.js"
+import jwt, { decode } from "jsonwebtoken"
 
 
 const register = asyncHandler(async (req, res) => {
@@ -57,4 +58,40 @@ const getCurrent = asyncHandler(async (req, res) => {
     })
 })
 
-export {register, login, getCurrent}
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const cookie = req.cookies;
+
+    if (!cookie || !cookie.refreshtoken) {
+        throw new Error("No refreshToken in cookie!");
+    }
+
+    const decode = jwt.verify(
+        cookie.refreshtoken,
+        process.env.JWT_SECRET
+    );
+
+    const response = await User.findOne({
+        _id: decode._id,
+        refreshtoken: cookie.refreshtoken
+    });
+
+    return res.status(response ? 200 : 401).json({
+        success: response ? true : false,
+        newAccessToken: response
+            ? generateAccessToken(response._id, response.role)
+            : "refresh token not matched!"
+    });
+});
+
+const logout = asyncHandler(async (req, res) => {
+    const cookie = req.cookies;
+    if (!cookie || !cookie.refreshtoken) throw new Error("No refreshToken in cookie!");
+    await User.findOneAndUpdate({refreshtoken: cookie.refreshToken}, {refreshtoken: ''}, {new: true})
+    res.clearCookie("refreshtoken", {httpOnly: true, secure: true})
+    return res.status(200).json({
+        success: true,
+        mes: "Logout success"
+    })
+})
+
+export {register, login, getCurrent, refreshAccessToken, logout}

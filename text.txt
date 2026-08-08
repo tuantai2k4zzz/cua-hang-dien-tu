@@ -1,6 +1,0 @@
-hiện tại dự án đã làm được những thứ sau: 
-1 tạo base BE với express
-kết nối mongoose kết hợp check điều kiện của mongo bằng connection.readyState
-2 viết xong Schema cho user kết hợp hash password trước khi save và verified password khi login bằng cách thêm 1 hàm mới bằng phương thức methods của Schema của mongo 
-3 viết xong hàm login kết hợp lấy các data cần thiết bằng destructoring nhưng cần ép kiểu thành Object bởi khi lấy kết quả từ không mongo nó không phải là 1 Object thuần mà là 1 plane Object
-4 viết xong hàm getCurrent cần check token hợp lệ bằng hàm verifyToken lấy token bằng cách tách Bearer và select bỏ trường không cần thiết (-refreshtoken)
