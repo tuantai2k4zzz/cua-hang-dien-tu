@@ -64,14 +64,15 @@ var userSchema = new mongoose.Schema({
     timestemp: true
 });
 
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
     if(this.isModified("password")) {
-        const salt = bcrypt.genSalt(10)
+        const salt = await bcrypt.genSalt(10)
         this.password = await bcrypt.hash(this.password, salt)
     }
-    next()
 })
-
+userSchema.methods.isCorrectPassword = async function (password) {
+    return await bcrypt.compare(password, this.password);
+};
 //Export the model
 const User = mongoose.model('User', userSchema);
 export default User
