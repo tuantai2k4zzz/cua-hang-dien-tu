@@ -2,6 +2,9 @@ import User from "../models/user.js"
 import asyncHandler from "express-async-handler"
 import {generateAccessToken, generateRefreshToken} from "../middlewares/jwt.js"
 import jwt, { decode } from "jsonwebtoken"
+import sendMail from "../ultils/sendmail.js"
+import html from "../ultils/textHtml.js"
+import crypto from "crypto"
 
 
 const register = asyncHandler(async (req, res) => {
@@ -94,4 +97,44 @@ const logout = asyncHandler(async (req, res) => {
     })
 })
 
-export {register, login, getCurrent, refreshAccessToken, logout}
+const forgotPassword = asyncHandler(async (req, res) => {
+    const {email} = req.body
+    if(!email) throw new Error("Missing input!");
+    const user = await User.findOne({email})
+    if(!user) throw new Error("User not found!")
+    const resetToken = user.createPasswordChangeToken()
+    await user.save()
+
+    const textHtml = html(resetToken)
+
+    const data = {
+        email,
+        html : textHtml
+    }
+
+    const rs = await sendMail(data)
+    return res.status(200).json({
+        success: true,
+        rs
+    })
+
+})
+
+const resetPassword = asyncHandler(async (req,res) => {
+    const {password, token} = req.body
+    if(!password || !token) throw new Error("Missing inputs!")
+    const tokenReset = crypto.createHash('sha256').update(token).digest('hex')
+    const user = await User.findOne({passwordResetToken: tokenReset, passwordResetExpire: {$gt: Date.now()}}, {new: true})
+    if(!user) throw new Erro("Token not match!")
+    user.password = password
+    user.passwordChangeAt = Date.now()
+    user.passwordResetToken = undefined
+    user.passwordResetExpire = undefined
+    user.save()
+    return res.status(200).json({
+        success: user ? true : false,
+        mes: user ? "Updated password!" : "Something went wrong!"
+    })
+})
+
+export {register, login, getCurrent, refreshAccessToken, logout, forgotPassword,resetPassword}

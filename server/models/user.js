@@ -1,5 +1,6 @@
 import mongoose from "mongoose"
 import bcrypt from "bcrypt"
+import crypto from "crypto"
 
 // Declare the Schema of the Mongo model
 var userSchema = new mongoose.Schema({
@@ -54,7 +55,7 @@ var userSchema = new mongoose.Schema({
     passwordChangeAt: {
         type: String
     },
-    passwordToken: {
+    passwordResetToken: {
         type: String
     },
     passwordResetExpire: {
@@ -70,9 +71,17 @@ userSchema.pre("save", async function () {
         this.password = await bcrypt.hash(this.password, salt)
     }
 })
-userSchema.methods.isCorrectPassword = async function (password) {
-    return await bcrypt.compare(password, this.password);
-};
+userSchema.methods = {
+    isCorrectPassword: async function (password) {  
+        return await bcrypt.compare(password, this.password)
+    },
+    createPasswordChangeToken: function () {
+        const refreshToken = crypto.randomBytes(32).toString("hex")
+        this.passwordResetToken = crypto.createHash('sha256').update(refreshToken).digest('hex')
+        this.passwordResetExpire = Date.now() + 15 * 60 * 1000
+        return refreshToken
+    }
+}
 //Export the model
 const User = mongoose.model('User', userSchema);
 export default User
